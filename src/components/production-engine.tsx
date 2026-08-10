@@ -6,6 +6,7 @@ import EpisodeTree from '@/components/episode-tree'
 import EpisodeEditor from '@/components/episode-editor'
 import CanonTrackerPanel from '@/components/canon-tracker'
 import BiblePanel from '@/components/bible-panel'
+import BatchGenerate from '@/components/batch-generate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollText, BookOpen, Download } from 'lucide-react'
@@ -76,6 +77,7 @@ export default function ProductionEngine() {
         <div className="flex items-center justify-between p-3 border-b border-border">
           <span className="text-xs font-semibold">에피소드 목록</span>
           <div className="flex items-center gap-1">
+            <BatchGenerate />
             <Button
               variant="ghost"
               size="icon"
