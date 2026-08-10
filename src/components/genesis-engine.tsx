@@ -1,12 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import ChatInterface from '@/components/chat-interface'
 import NodePanel from '@/components/node-panel'
+import NodeGraph from '@/components/node-graph'
 import BiblePanel from '@/components/bible-panel'
 import PhaseTransition from '@/components/phase-transition'
 import { Button } from '@/components/ui/button'
-import { PanelRightOpen, GitBranch, BookOpen } from 'lucide-react'
+import { PanelRightOpen, GitBranch, BookOpen, Network } from 'lucide-react'
 
 export default function GenesisEngine() {
   const {
@@ -14,6 +16,7 @@ export default function GenesisEngine() {
     rightPanelView,
     setRightPanel,
   } = useAppStore()
+  const [showGraph, setShowGraph] = useState(false)
 
   if (!currentProject) return null
 
@@ -23,14 +26,24 @@ export default function GenesisEngine() {
       <PhaseTransition />
 
       <div className="flex flex-1 overflow-hidden">
-      {/* Main Chat Area */}
+      {/* Main Chat Area / Node Graph */}
       <div className="flex-1 flex flex-col min-w-0">
-        <ChatInterface />
+        {showGraph ? <NodeGraph /> : <ChatInterface />}
       </div>
 
       {/* Right Panel Toggle */}
       <div className="border-l border-border flex flex-col">
         <div className="flex items-center gap-1 p-1 border-b border-border">
+          <Button
+            variant={showGraph ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setShowGraph(!showGraph)}
+            className="gap-1.5 text-xs"
+            title="노드 그래프"
+          >
+            <Network className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">그래프</span>
+          </Button>
           <Button
             variant={rightPanelView === 'nodes' ? 'secondary' : 'ghost'}
             size="sm"

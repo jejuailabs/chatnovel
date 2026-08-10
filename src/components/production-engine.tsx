@@ -7,9 +7,16 @@ import EpisodeEditor from '@/components/episode-editor'
 import CanonTrackerPanel from '@/components/canon-tracker'
 import BiblePanel from '@/components/bible-panel'
 import BatchGenerate from '@/components/batch-generate'
+import SearchPanel from '@/components/search-panel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ScrollText, BookOpen, Download } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ScrollText, BookOpen, Download, Search, FileText, FileArchive } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ProductionEngine() {
@@ -20,7 +27,7 @@ export default function ProductionEngine() {
     setBibles,
     setCanonTracker,
   } = useAppStore()
-  const [rightTab, setRightTab] = useState<'canon' | 'bible'>('canon')
+  const [rightTab, setRightTab] = useState<'canon' | 'bible' | 'search'>('canon')
 
   const projectId = currentProject?.id
 
@@ -68,6 +75,52 @@ export default function ProductionEngine() {
     toast.success(`${withContent.length}개 회차를 Markdown으로 내보냈습니다.`)
   }
 
+  const exportDocx = async () => {
+    if (!currentProject) return
+    toast.info('DOCX 생성 중...')
+    try {
+      const res = await fetch(`/api/projects/${currentProject.id}/export-docx`)
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(err.error || 'DOCX 내보내기 실패')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${currentProject.title}.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('DOCX로 내보냈습니다.')
+    } catch {
+      toast.error('DOCX 내보내기에 실패했습니다.')
+    }
+  }
+
+  const exportEpub = async () => {
+    if (!currentProject) return
+    toast.info('EPUB 생성 중...')
+    try {
+      const res = await fetch(`/api/projects/${currentProject.id}/export-epub`)
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(err.error || 'EPUB 내보내기 실패')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${currentProject.title}.epub`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('EPUB으로 내보냈습니다.')
+    } catch {
+      toast.error('EPUB 내보내기에 실패했습니다.')
+    }
+  }
+
   if (!currentProject) return null
 
   return (
@@ -78,15 +131,24 @@ export default function ProductionEngine() {
           <span className="text-xs font-semibold">에피소드 목록</span>
           <div className="flex items-center gap-1">
             <BatchGenerate />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              title="Markdown 내보내기"
-              onClick={exportMarkdown}
-            >
-              <Download className="h-3.5 w-3.5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6" title="내보내기">
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportMarkdown}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> Markdown (.md)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportDocx}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> Word (.docx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportEpub}>
+                  <FileArchive className="h-3.5 w-3.5 mr-2" /> EPUB (.epub)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Badge variant="outline" className="text-[10px]">
               {episodes.length}화
             </Badge>
@@ -112,7 +174,7 @@ export default function ProductionEngine() {
             onClick={() => setRightTab('canon')}
           >
             <ScrollText className="h-3.5 w-3.5" />
-            캐논 트래커
+            캐논
           </Button>
           <Button
             variant={rightTab === 'bible' ? 'secondary' : 'ghost'}
@@ -123,9 +185,20 @@ export default function ProductionEngine() {
             <BookOpen className="h-3.5 w-3.5" />
             성경
           </Button>
+          <Button
+            variant={rightTab === 'search' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="gap-1.5 text-xs flex-1"
+            onClick={() => setRightTab('search')}
+          >
+            <Search className="h-3.5 w-3.5" />
+            검색
+          </Button>
         </div>
         <div className="flex-1 overflow-hidden">
-          {rightTab === 'canon' ? <CanonTrackerPanel /> : <BiblePanel />}
+          {rightTab === 'canon' && <CanonTrackerPanel />}
+          {rightTab === 'bible' && <BiblePanel />}
+          {rightTab === 'search' && <SearchPanel />}
         </div>
       </div>
     </div>

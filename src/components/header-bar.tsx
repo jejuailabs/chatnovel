@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import { useAppStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,12 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -30,6 +37,8 @@ import {
   Coins,
   BookOpen,
   Layers,
+  User,
+  LogOut,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -37,6 +46,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 const GENRES = ['웹소설', '웹툰', '드라마', '영화', '게임 시나리오']
 
 export default function HeaderBar() {
+  const { data: session } = useSession()
   const {
     currentView,
     currentProject,
@@ -183,6 +193,31 @@ export default function HeaderBar() {
             >
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">대시보드</span>
+            </Button>
+          )}
+
+          {session?.user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1.5">
+                  {session.user.image ? (
+                    <img src={session.user.image} alt="" className="h-5 w-5 rounded-full" />
+                  ) : (
+                    <User className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline text-xs">{session.user.name || session.user.email}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut className="h-3.5 w-3.5 mr-2" /> 로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => signIn()} className="gap-1.5 text-xs">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">로그인</span>
             </Button>
           )}
 
