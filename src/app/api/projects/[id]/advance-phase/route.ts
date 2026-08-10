@@ -26,16 +26,17 @@ export async function POST(
       })
       .map((n: any) => n.title)
 
+    // 캐논 트래커 패널이 읽는 스키마와 동일하게 시드
     const initialState = JSON.stringify({
-      version: 'v1.0',
-      timeline: { current_day: 0, current_season: '', notes: '' },
-      characters: Object.fromEntries(
-        characterNames.map((name: string) => [name, { status: '등장 전', last_scene: '' }])
-      ),
-      plots_planted: [],
-      plots_resolved: [],
-      locations_visited: [],
-      sensory_anchors: {},
+      timeline: { day: 1, season: '', year: '1년차', note: '' },
+      characters: characterNames.map((name: string) => ({
+        name,
+        status: '등장 전',
+        lastScene: '',
+        note: '',
+      })),
+      plots: [],
+      locations: [],
     })
 
     // 트래커 upsert

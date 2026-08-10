@@ -161,15 +161,18 @@ export default function EpisodeEditor() {
         }
       }
 
-      // Refresh episodes to get updated data from server
+      // Refresh episodes + 자동 갱신된 캐논 트래커
+      const store = useAppStore.getState()
       const epsRes = await fetch(`/api/projects/${currentProject.id}/episodes`)
       if (epsRes.ok) {
-        const freshEps = await epsRes.json()
-        const store = useAppStore.getState()
-        store.setEpisodes(freshEps)
+        store.setEpisodes(await epsRes.json())
       }
+      fetch(`/api/projects/${currentProject.id}/canon-tracker`)
+        .then((r) => r.json())
+        .then((t) => store.setCanonTracker(t))
+        .catch(() => {})
 
-      toast.success('에피소드가 생성되었습니다.')
+      toast.success('에피소드 생성 완료 · 캐논 트래커가 갱신되었습니다.')
     } catch {
       toast.error('에피소드 생성에 실패했습니다.')
     } finally {

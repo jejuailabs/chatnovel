@@ -6,7 +6,11 @@ const GENESIS_SYSTEM_PROMPT = `당신은 웹소설·웹툰·드라마 IP 창작�
 현재 프로젝트의 성경(기획서, 제작 성경)과 이미 확정된 노드들을 참고하여, 사용자의 아이디어를 확장하고 구체화하세요.
 
 규칙:
-- 새로운 아이디어가 등장하면 반드시 [NODE: 제목] 형식으로 명시하세요
+- 새로운 아이디어(캐릭터·설정·플롯·로케이션·모티프 등)가 등장하면 반드시 아래 형식으로 명시하세요:
+  [NODE: 제목 | 태그1,태그2 | 한 줄 설명]
+  예) [NODE: 제주를 거부하는 여자 | 캐릭터 | 이유 없이 고향 제주를 피하는 주인공]
+  예) [NODE: 어머니의 편지 | 플롯,복선 | 1화에 심고 후반에 회수되는 편지]
+  태그는 캐릭터·플롯·배경·설정·모티프·로케이션·복선 중에서 고르세요.
 - 캐릭터, 설정, 플롯, 로케이션, 모티프 등 다양한 방향을 제시하세요
 - 사용자의 결정을 유도하는 질문을 던지세요
 - 한국어로 응답하세요
@@ -70,21 +74,32 @@ export async function POST(req: NextRequest) {
             data: { sessionId, role: 'assistant', content: fullResponse },
           })
 
-          // Extract nodes from response
+          // Extract nodes from response: [NODE: 제목 | 태그1,태그2 | 설명]
           const nodeRegex = /\[NODE:\s*([^\]]+)\]/g
-          const nodeTitles: string[] = []
+          const parsedNodes: { title: string; tags: string; content: string }[] = []
           let match
           while ((match = nodeRegex.exec(fullResponse)) !== null) {
-            nodeTitles.push(match[1].trim())
+            const parts = match[1].split('|').map((s) => s.trim())
+            const title = parts[0]
+            if (!title) continue
+            const tagArr = (parts[1] || '')
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean)
+            parsedNodes.push({
+              title,
+              tags: JSON.stringify(tagArr),
+              content: parts[2] || `대화 중 등장한 아이디어: ${title}`,
+            })
           }
 
-          for (const title of nodeTitles) {
+          for (const n of parsedNodes) {
             await db.node.create({
               data: {
                 projectId,
-                title,
-                content: `자동 추출된 노드: ${title}`,
-                tags: '[]',
+                title: n.title,
+                content: n.content,
+                tags: n.tags,
                 status: 'pending',
                 sessionId,
                 originMessageId: assistantMsg.id,
