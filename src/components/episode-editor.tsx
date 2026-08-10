@@ -14,6 +14,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Sparkles,
   Save,
   Check,
@@ -22,6 +28,9 @@ import {
   Loader2,
   Coins,
   Type,
+  ShieldCheck,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import ReactMarkdown from 'react-markdown'
@@ -42,6 +51,9 @@ export default function EpisodeEditor() {
   const [generating, setGenerating] = useState(false)
   const [streamContent, setStreamContent] = useState('')
   const [saving, setSaving] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyOpen, setVerifyOpen] = useState(false)
+  const [verifyResult, setVerifyResult] = useState<{ consistent: boolean; issues: any[] } | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const episode = episodes.find((e) => e.id === selectedEpisodeId)
@@ -181,6 +193,34 @@ export default function EpisodeEditor() {
     }
   }
 
+  const handleVerify = async () => {
+    if (!currentProject || !episode || verifying) return
+    if (!episode.content?.trim()) {
+      toast.error('먼저 원고를 생성하거나 작성하세요.')
+      return
+    }
+    setVerifying(true)
+    setVerifyResult(null)
+    setVerifyOpen(true)
+    try {
+      const res = await fetch(`/api/projects/${currentProject.id}/episodes/${episode.id}/verify`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || '검증 실패')
+        setVerifyOpen(false)
+        return
+      }
+      setVerifyResult(data)
+    } catch {
+      toast.error('일관성 검증에 실패했습니다.')
+      setVerifyOpen(false)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   if (!episode) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -253,6 +293,16 @@ export default function EpisodeEditor() {
                 <PenLine className="h-3 w-3" />편집
               </Button>
               <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={handleVerify}
+                disabled={verifying || !episode.content?.trim()}
+              >
+                {verifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+                일관성 검증
+              </Button>
+              <Button
                 size="sm"
                 className="h-7 text-xs gap-1 bg-amber-600 hover:bg-amber-700 text-white"
                 onClick={handleGenerate}
@@ -307,6 +357,55 @@ export default function EpisodeEditor() {
           </div>
         )}
       </div>
+
+      {/* 일관성 검증 결과 */}
+      <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>원고-성경 일관성 검증</DialogTitle>
+          </DialogHeader>
+          {verifying ? (
+            <div className="py-8 flex items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" /> 성경·트래커와 대조 중...
+            </div>
+          ) : verifyResult ? (
+            verifyResult.consistent ? (
+              <div className="py-6 flex flex-col items-center gap-2 text-center">
+                <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                <p className="text-sm font-medium">일관성 문제가 발견되지 않았습니다.</p>
+                <p className="text-xs text-muted-foreground">성경·트래커와 어긋나는 지점이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 py-2 max-h-[50vh] overflow-y-auto">
+                <p className="text-xs text-muted-foreground">
+                  {verifyResult.issues.length}건의 불일치가 발견되었습니다.
+                </p>
+                {verifyResult.issues.map((iss, i) => (
+                  <div key={i} className="rounded-md border border-border p-2.5 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle
+                        className={`h-3.5 w-3.5 shrink-0 ${
+                          iss.severity === 'high'
+                            ? 'text-red-500'
+                            : iss.severity === 'medium'
+                            ? 'text-amber-500'
+                            : 'text-gray-400'
+                        }`}
+                      />
+                      <Badge variant="outline" className="text-[10px]">{iss.type}</Badge>
+                      <span className="text-[10px] text-muted-foreground ml-auto">기준: {iss.source}</span>
+                    </div>
+                    <p className="text-xs">{iss.detail}</p>
+                    {iss.suggestion && (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400">💡 {iss.suggestion}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -8,7 +8,8 @@ import CanonTrackerPanel from '@/components/canon-tracker'
 import BiblePanel from '@/components/bible-panel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ScrollText, BookOpen } from 'lucide-react'
+import { ScrollText, BookOpen, Download } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function ProductionEngine() {
   const {
@@ -39,6 +40,33 @@ export default function ProductionEngine() {
       .catch(() => {})
   }, [projectId, setEpisodes, setBibles, setCanonTracker])
 
+  const exportMarkdown = () => {
+    if (!currentProject) return
+    const sorted = [...episodes].sort((a, b) => (a.bu === b.bu ? a.hwa - b.hwa : a.bu - b.bu))
+    const withContent = sorted.filter((e) => e.content && e.content.trim())
+    if (withContent.length === 0) {
+      toast.error('내보낼 원고가 없습니다.')
+      return
+    }
+    let md = `# ${currentProject.title}\n\n`
+    let curBu: number | null = null
+    for (const e of withContent) {
+      if (e.bu !== curBu) {
+        md += `\n# ${e.bu}부\n\n`
+        curBu = e.bu
+      }
+      md += `## ${e.bu}부 ${e.hwa}화\n\n${e.content}\n\n---\n\n`
+    }
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${currentProject.title}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`${withContent.length}개 회차를 Markdown으로 내보냈습니다.`)
+  }
+
   if (!currentProject) return null
 
   return (
@@ -47,9 +75,20 @@ export default function ProductionEngine() {
       <div className="w-[260px] border-r border-border flex flex-col shrink-0">
         <div className="flex items-center justify-between p-3 border-b border-border">
           <span className="text-xs font-semibold">에피소드 목록</span>
-          <Badge variant="outline" className="text-[10px]">
-            {episodes.length}화
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              title="Markdown 내보내기"
+              onClick={exportMarkdown}
+            >
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+            <Badge variant="outline" className="text-[10px]">
+              {episodes.length}화
+            </Badge>
+          </div>
         </div>
         <div className="flex-1 overflow-hidden">
           <EpisodeTree />

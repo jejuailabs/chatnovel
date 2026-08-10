@@ -137,6 +137,17 @@ export default function PhaseTransition() {
                 진화 {readiness.summary?.evolving ?? 0} · 대기 {readiness.summary?.pending ?? 0})
               </div>
 
+              {readiness.capacity && (
+                <div className="rounded-md border border-border p-2.5 space-y-1">
+                  <p className="text-[11px] font-semibold text-muted-foreground">📐 이 재료로 뽑을 수 있는 분량(추정)</p>
+                  <div className="text-xs space-y-0.5">
+                    <div className="flex justify-between"><span>웹소설</span><span className="font-medium">{readiness.capacity.webnovel}</span></div>
+                    <div className="flex justify-between"><span>웹툰</span><span className="font-medium">{readiness.capacity.webtoon}</span></div>
+                    <div className="flex justify-between"><span>드라마</span><span className="font-medium">{readiness.capacity.drama}</span></div>
+                  </div>
+                </div>
+              )}
+
               <div
                 className={`text-sm rounded-md px-3 py-2 ${
                   readiness.ready

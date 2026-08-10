@@ -84,9 +84,28 @@ export async function GET(
     const ready = checks.find((c) => c.key === 'confirmedNodes')!.ok &&
       checks.find((c) => c.key === 'conceptBible')!.ok
 
+    // 분량 계산기 (§1.9): 재료 풍부도 → 뽑을 수 있는 분량 추정
+    const richness =
+      confirmed.length * 4 +
+      evolving.length * 1 +
+      categories.size * 3 +
+      Math.round(conceptPct * 20) +
+      Math.round(productionPct * 20)
+    const low = Math.max(1, Math.round(richness * 0.8))
+    const high = Math.max(low, Math.round(richness * 1.3))
+    const capacity =
+      richness > 0
+        ? {
+            webnovel: `${low}~${high}화 (회당 5,000자)`,
+            webtoon: `${Math.max(1, Math.round(low / 2))}~${Math.round(high / 2)}화 (회당 약 20컷)`,
+            drama: `${Math.max(1, Math.round(high / 12))}부작 (60분 기준)`,
+          }
+        : null
+
     return NextResponse.json({
       ready,
       checks,
+      capacity,
       summary: {
         totalNodes: nodes.length,
         confirmed: confirmed.length,
