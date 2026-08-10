@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Project ====================
+model Project {
+  id           String   @id @default(cuid())
+  title        String
+  genre        String   @default("웹소설")
+  targetLength Int      @default(144)
+  phase        Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     Session[]
+  nodes        Node[]
+  bibles       Bible[]
+  canonTracker CanonTracker?
+  episodes     Episode[]
+  metrics      Metric[]
+}
+
+// ==================== Session (Phase 1) ====================
+model Session {
+  id         String   @id @default(cuid())
+  projectId  String
+  type       String   @default("brainstorm")
+  title      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages   Message[]
+  nodes      Node[]
+}
+
+// ==================== Message ====================
+model Message {
+  id         String   @id @default(cuid())
+  sessionId  String
+  role       String
+  content    String
+  createdAt  DateTime @default(now())
+
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  nodes      Node[]
+}
+
+// ==================== Node ====================
+model Node {
+  id              String   @id @default(cuid())
+  projectId       String
+  title           String
+  content         String
+  tags            String   @default("[]")
+  status          String   @default("evolving")
+  sessionId       String?
+  originMessageId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  session         Session? @relation(fields: [sessionId], references: [id])
+  originMessage   Message? @relation(fields: [originMessageId], references: [id])
+  parentLinks     NodeLink[] @relation("ChildToParent")
+  childLinks      NodeLink[] @relation("ParentToChild")
+}
+
+// ==================== NodeLink ====================
+model NodeLink {
+  id         String   @id @default(cuid())
+  parentId   String
+  childId    String
+  createdAt  DateTime @default(now())
+
+  parent     Node     @relation("ParentToChild", fields: [parentId], references: [id], onDelete: Cascade)
+  child      Node     @relation("ChildToParent", fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, childId])
+}
+
+// ==================== Bible ====================
+model Bible {
+  id        String   @id @default(cuid())
+  projectId String
+  type      String   // concept·production·log
+  version   Int      @default(1)
+  content   String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, type])
+}
+
+// ==================== CanonTracker ====================
+model CanonTracker {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  version     Int      @default(1)
+  state       String   @default("{}")
+  lastUpdated DateTime @default(now())
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ==================== Episode ====================
+model Episode {
+  id         String    @id @default(cuid())
+  projectId  String
+  bu         Int
+  hwa        Int
+  content    String    @default("")
+  wordCount  Int       @default(0)
+  tokenUsed  Int       @default(0)
+  costKrw    Float     @default(0)
+  status     String    @default("draft")
+  createdAt  DateTime  @default(now())
+  approvedAt DateTime?
+
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  revisions  Revision[]
+
+  @@unique([projectId, bu, hwa])
+}
+
+// ==================== Revision ====================
+model Revision {
+  id        String   @id @default(cuid())
+  episodeId String
+  version   Int
+  content   String
+  createdAt DateTime @default(now())
+
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, version])
+}
+
+// ==================== Metric ====================
+model Metric {
+  id            String   @id @default(cuid())
+  projectId     String
+  eventType     String
+  entityId      String
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  costKrw       Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
