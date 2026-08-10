@@ -6,9 +6,16 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BookOpen, Save, RotateCcw, CheckCircle2, Circle } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { BookOpen, Save, RotateCcw, Upload, Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 const BIBLE_TYPES = [
   { value: 'concept', label: '기획서' },
@@ -48,6 +55,49 @@ export default function BiblePanel() {
   const [activeTab, setActiveTab] = useState('concept')
   const [editing, setEditing] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<string | null>(null)
+  const [showImport, setShowImport] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importing, setImporting] = useState(false)
+
+  const reloadBibles = useCallback(async () => {
+    if (!currentProject) return
+    const fresh = await fetch(`/api/projects/${currentProject.id}/bibles`).then((r) => r.json())
+    setBibles(fresh)
+  }, [currentProject, setBibles])
+
+  // 자유 원문 → AI가 성경 3종으로 정리해서 가져오기
+  const handleAiImport = async () => {
+    if (!currentProject || !importText.trim()) return
+    setImporting(true)
+    try {
+      const res = await fetch(`/api/projects/${currentProject.id}/import-bible`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: importText }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || '가져오기 실패')
+        return
+      }
+      await reloadBibles()
+      setShowImport(false)
+      setImportText('')
+      toast.success('기존 성경을 3종으로 정리해 가져왔습니다.')
+    } catch {
+      toast.error('성경 가져오기에 실패했습니다.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // 원문을 현재 탭에 그대로 붙여넣기 (수동 편집 시작)
+  const handleRawPaste = () => {
+    setEditing((prev) => ({ ...prev, [activeTab]: importText }))
+    setShowImport(false)
+    setImportText('')
+    toast.message(`원문을 '${activeTab}' 탭에 붙여넣었습니다. 저장을 눌러 확정하세요.`)
+  }
 
   const getBible = useCallback((type: string) => {
     return bibles.find((b) => b.type === type)
@@ -125,6 +175,15 @@ export default function BiblePanel() {
               <BookOpen className="h-3.5 w-3.5" />
               바이블
             </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 text-[11px] px-2"
+              onClick={() => setShowImport(true)}
+            >
+              <Upload className="h-3 w-3" />
+              가져오기
+            </Button>
           </div>
           <TabsList className="w-full h-8">
             {BIBLE_TYPES.map((bt) => {
@@ -221,6 +280,46 @@ export default function BiblePanel() {
           )
         })}
       </Tabs>
+
+      {/* 기존 성경 가져오기 */}
+      <Dialog open={showImport} onOpenChange={setShowImport}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>기존 성경·설정 가져오기</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-xs text-muted-foreground">
+              이미 가지고 계신 세계관·설정·기획 문서를 붙여넣으세요. AI가 성경 3종(기획서·제작성경·창작로그)으로
+              정리하거나, 현재 탭에 원문 그대로 넣을 수 있습니다.
+            </p>
+            <Textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder="여기에 기존 설정/성경 원문을 붙여넣으세요..."
+              className="min-h-[220px] font-mono text-xs"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={handleRawPaste}
+              disabled={!importText.trim() || importing}
+              className="gap-1.5"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              현재 탭에 원문 붙여넣기
+            </Button>
+            <Button
+              onClick={handleAiImport}
+              disabled={!importText.trim() || importing}
+              className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              AI로 3종 정리해서 가져오기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

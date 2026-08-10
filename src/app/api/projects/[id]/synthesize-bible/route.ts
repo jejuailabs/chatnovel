@@ -97,6 +97,7 @@ export async function POST(
     return NextResponse.json({ bibles: Object.values(saved) })
   } catch (error) {
     console.error('synthesize-bible error:', error)
-    return NextResponse.json({ error: '성경 자동 생성에 실패했습니다.' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : '성경 자동 생성에 실패했습니다.'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

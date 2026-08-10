@@ -104,7 +104,8 @@ export async function POST(req: NextRequest) {
           controller.close()
         } catch (err) {
           console.error('Episode generation error:', err)
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: '에피소드 생성 중 오류가 발생했습니다.' })}\n\n`))
+          const msg = err instanceof Error ? err.message : '에피소드 생성 중 오류가 발생했습니다.'
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`))
           controller.close()
         }
       },

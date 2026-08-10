@@ -103,7 +103,17 @@ export async function* streamCompletion(
 
   if (!res.ok || !res.body) {
     const errText = await res.text().catch(() => '')
-    throw new Error(`Anthropic API error ${res.status}: ${errText}`)
+    let friendly = `AI 호출 오류 (${res.status})`
+    if (res.status === 400 && /credit balance is too low/i.test(errText)) {
+      friendly = 'Anthropic 크레딧 잔액이 부족합니다. console.anthropic.com → Plans & Billing 에서 충전 후 다시 시도하세요.'
+    } else if (res.status === 401) {
+      friendly = 'Anthropic API 키가 유효하지 않습니다. .env.local 의 ANTHROPIC_API_KEY 를 확인하세요.'
+    } else if (res.status === 429) {
+      friendly = 'Anthropic API 요청 한도(rate limit)를 초과했습니다. 잠시 후 다시 시도하세요.'
+    }
+    const e = new Error(friendly)
+    ;(e as any).status = res.status
+    throw e
   }
 
   const reader = res.body.getReader()
