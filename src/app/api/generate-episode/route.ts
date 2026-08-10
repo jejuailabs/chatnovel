@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest } from 'next/server'
-import ZAI from 'z-ai-web-dev-sdk'
+import { streamCompletion, EPISODE_PRESET } from '@/lib/ai'
 
 const EPISODE_SYSTEM_PROMPT = `당신은 웹소설·웹툰·드라마의 에피소드 원고를 작성하는 전문 AI 작가입니다.
 
@@ -64,25 +64,15 @@ export async function POST(req: NextRequest) {
       { role: 'user', content: userMessage },
     ]
 
-    const zai = await ZAI.create()
     const encoder = new TextEncoder()
 
     const stream = new ReadableStream({
       async start(controller) {
         let fullResponse = ''
         try {
-          const completion = await zai.chat.completions.create({
-            messages,
-            thinking: { type: 'disabled' },
-            stream: true,
-          })
-
-          for await (const chunk of completion) {
-            const delta = chunk.choices?.[0]?.delta?.content
-            if (delta) {
-              fullResponse += delta
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: delta })}\n\n`))
-            }
+          for await (const delta of streamCompletion(messages, EPISODE_PRESET)) {
+            fullResponse += delta
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: delta })}\n\n`))
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))

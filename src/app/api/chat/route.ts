@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest } from 'next/server'
-import ZAI from 'z-ai-web-dev-sdk'
+import { streamCompletion, GENESIS_PRESET } from '@/lib/ai'
 
 const GENESIS_SYSTEM_PROMPT = `당신은 웹소설·웹툰·드라마 IP 창작을 돕는 전문 AI 어시스턴트입니다.
 현재 프로젝트의 성경(기획서, 제작 성경)과 이미 확정된 노드들을 참고하여, 사용자의 아이디어를 확장하고 구체화하세요.
@@ -52,25 +52,15 @@ export async function POST(req: NextRequest) {
     ]
 
     // Call AI SDK
-    const zai = await ZAI.create()
     const encoder = new TextEncoder()
 
     const stream = new ReadableStream({
       async start(controller) {
         let fullResponse = ''
         try {
-          const completion = await zai.chat.completions.create({
-            messages,
-            thinking: { type: 'disabled' },
-            stream: true,
-          })
-
-          for await (const chunk of completion) {
-            const delta = chunk.choices?.[0]?.delta?.content
-            if (delta) {
-              fullResponse += delta
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: delta })}\n\n`))
-            }
+          for await (const delta of streamCompletion(messages, GENESIS_PRESET)) {
+            fullResponse += delta
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: delta })}\n\n`))
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
