@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         title: title.trim(),
         genre: genre || '웹소설',
         targetLength: targetLength || 144,
+        phase: 1,
       },
     })
 

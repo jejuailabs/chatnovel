@@ -125,29 +125,35 @@ function applySort(docs: Doc[], orderBy: any, take?: number): Doc[] {
   return out
 }
 
+// 문서를 읽지 않고 개수만 조회 (Firestore 집계 count)
+async function countByFilter(colName: string, field: string, value: any): Promise<number> {
+  const snap = await fs().collection(colName).where(field, '==', value).count().get()
+  return snap.data().count
+}
+
 async function applyInclude(def: ModelDef, doc: Doc, include: Doc) {
-  for (const [key, cfg] of Object.entries(include)) {
-    if (key === '_count') {
-      doc._count = {}
-      const select = (cfg as any)?.select || {}
-      for (const rel of Object.keys(select)) {
-        const r = def.relations?.[rel]
-        if (!r) {
-          doc._count[rel] = 0
-          continue
-        }
-        const kids = await fetchByFilters(r.col, [[r.fk, doc.id]])
-        doc._count[rel] = kids.length
+  await Promise.all(
+    Object.entries(include).map(async ([key, cfg]) => {
+      if (key === '_count') {
+        const select = (cfg as any)?.select || {}
+        const entries = await Promise.all(
+          Object.keys(select).map(async (rel) => {
+            const r = def.relations?.[rel]
+            if (!r) return [rel, 0] as const
+            return [rel, await countByFilter(r.col, r.fk, doc.id)] as const
+          })
+        )
+        doc._count = Object.fromEntries(entries)
+        return
       }
-      continue
-    }
-    const r = def.relations?.[key]
-    if (!r) continue
-    let kids = await fetchByFilters(r.col, [[r.fk, doc.id]])
-    const opts = (cfg && typeof cfg === 'object') ? (cfg as Doc) : {}
-    kids = applySort(kids, opts.orderBy, opts.take)
-    doc[key] = r.single ? kids[0] ?? null : kids
-  }
+      const r = def.relations?.[key]
+      if (!r) return
+      let kids = await fetchByFilters(r.col, [[r.fk, doc.id]])
+      const opts = cfg && typeof cfg === 'object' ? (cfg as Doc) : {}
+      kids = applySort(kids, opts.orderBy, opts.take)
+      doc[key] = r.single ? kids[0] ?? null : kids
+    })
+  )
 }
 
 // ---- 모델별 CRUD 구현 ----
@@ -160,7 +166,7 @@ function model(name: string) {
       const { filters } = parseWhere(args.where)
       let docs = await fetchByFilters(def.col, filters)
       docs = applySort(docs, args.orderBy, args.take)
-      if (args.include) for (const d of docs) await applyInclude(def, d, args.include)
+      if (args.include) await Promise.all(docs.map((d) => applyInclude(def, d, args.include)))
       return docs
     },
 

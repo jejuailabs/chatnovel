@@ -190,7 +190,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   selectProject: (project) => set({
     currentProject: project,
-    currentView: project.phase === 1 ? 'genesis' : 'production',
+    // phase 가 명시적으로 2일 때만 Production, 그 외(1·미설정)는 Genesis
+    currentView: project.phase === 2 ? 'production' : 'genesis',
     currentSession: null,
     nodes: [],
     messages: [],

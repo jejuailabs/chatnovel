@@ -131,12 +131,12 @@ export default function HeaderBar() {
               <Badge
                 variant="outline"
                 className={`text-xs shrink-0 ${
-                  currentProject.phase === 1
-                    ? 'border-amber-500/30 text-amber-600 dark:text-amber-400'
-                    : 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  currentProject.phase === 2
+                    ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'border-amber-500/30 text-amber-600 dark:text-amber-400'
                 }`}
               >
-                {currentProject.phase === 1 ? 'Phase 1' : 'Phase 2'}
+                {currentProject.phase === 2 ? 'Phase 2' : 'Phase 1'}
               </Badge>
             </motion.div>
           )}
