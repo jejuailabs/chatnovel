@@ -4,6 +4,7 @@ import { useAppStore } from '@/lib/store'
 import ChatInterface from '@/components/chat-interface'
 import NodePanel from '@/components/node-panel'
 import BiblePanel from '@/components/bible-panel'
+import PhaseTransition from '@/components/phase-transition'
 import { Button } from '@/components/ui/button'
 import { PanelRightOpen, GitBranch, BookOpen } from 'lucide-react'
 
@@ -17,7 +18,11 @@ export default function GenesisEngine() {
   if (!currentProject) return null
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem-2.5rem)] overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-3.5rem-2.5rem)] overflow-hidden">
+      {/* Phase 전환 바 (성경 생성 · 완결 판정 · Phase 2 진입) */}
+      <PhaseTransition />
+
+      <div className="flex flex-1 overflow-hidden">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <ChatInterface />
@@ -58,6 +63,7 @@ export default function GenesisEngine() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

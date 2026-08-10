@@ -34,6 +34,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Lightbulb,
+  Layers,
+  Compass,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import ReactMarkdown from 'react-markdown'
@@ -62,6 +64,7 @@ export default function ChatInterface() {
     addNode,
     setCurrentSession,
     setBibles,
+    selectedNodeId,
   } = useAppStore()
 
   const [input, setInput] = useState('')
@@ -231,10 +234,19 @@ export default function ChatInterface() {
     }
   }
 
+  const selectedNode = nodes.find((n) => n.id === selectedNodeId)
   const quickPrompts = [
-    { label: '이 노드 확장해봐', icon: Sparkles, prefix: '앞서 언급된 노드를 더 깊이 확장해줘. ' },
-    { label: '구멍 찾아줘', icon: Search, prefix: '현재까지의 설정과 플롯에서 논리적 구멍이나 모순을 찾아줘. ' },
-    { label: '반대 방향', icon: ArrowRightLeft, prefix: '현재 방향과 반대되는 전개나 설정을 제안해줘. ' },
+    {
+      label: selectedNode ? `"${selectedNode.title.slice(0, 10)}" 확장` : '이 노드 확장',
+      icon: Sparkles,
+      prefix: selectedNode
+        ? `"${selectedNode.title}" 노드를 3가지 방향으로 더 깊이 확장해줘. `
+        : '앞서 언급된 핵심 노드를 3가지 방향으로 더 깊이 확장해줘. ',
+    },
+    { label: '반대 방향', icon: ArrowRightLeft, prefix: '현재 방향과 반대되는 전개·역발상 설정을 제안해줘. ' },
+    { label: '다른 매체라면?', icon: Layers, prefix: '이 이야기를 웹툰·드라마·영화 관점에서 각각 어떻게 재해석할지 제안해줘. ' },
+    { label: '구멍 찾아줘', icon: Search, prefix: '현재까지의 설정과 플롯에서 논리적 구멍이나 모순을 지적해줘. ' },
+    { label: '이 방향 계속?', icon: Compass, prefix: '지금까지의 방향을 계속 밀지 폐기할지 장단점을 평가하고 결정을 유도해줘. ' },
   ]
 
   return (

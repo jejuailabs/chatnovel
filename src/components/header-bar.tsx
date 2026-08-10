@@ -151,6 +151,29 @@ export default function HeaderBar() {
             </div>
           )}
 
+          {currentProject && currentProject.phase === 2 && (
+            <>
+              <Button
+                variant={currentView === 'genesis' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setCurrentView('genesis')}
+                className="gap-1.5"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Genesis</span>
+              </Button>
+              <Button
+                variant={currentView === 'production' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setCurrentView('production')}
+                className="gap-1.5"
+              >
+                <Layers className="h-4 w-4" />
+                <span className="hidden sm:inline">Production</span>
+              </Button>
+            </>
+          )}
+
           {currentProject && (
             <Button
               variant={currentView === 'dashboard' ? 'secondary' : 'ghost'}

@@ -33,6 +33,30 @@ export type CompletionOptions = {
   effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 }
 
+/** 스트리밍을 전부 모아 한 문자열로 반환 (JSON 생성 등 비스트리밍 용도) */
+export async function complete(
+  messages: ChatMessage[],
+  opts: CompletionOptions = GENESIS_PRESET
+): Promise<string> {
+  let out = ''
+  for await (const delta of streamCompletion(messages, opts)) out += delta
+  return out
+}
+
+/** 응답 문자열에서 첫 JSON 객체를 추출·파싱 (코드펜스/잡텍스트 방어) */
+export function extractJson<T = any>(text: string): T | null {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  const raw = fenced ? fenced[1] : text
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('}')
+  if (start === -1 || end === -1) return null
+  try {
+    return JSON.parse(raw.slice(start, end + 1)) as T
+  } catch {
+    return null
+  }
+}
+
 /**
  * messages 를 받아 텍스트 조각(delta)을 순차적으로 yield 하는 async iterable 반환.
  * @param opts 모델·사고·effort 프리셋 (기본값: 원고용 Sonnet, 사고 OFF)
